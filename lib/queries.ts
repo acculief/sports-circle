@@ -22,12 +22,12 @@ export type Post = {
   favoriteCount: number
   createdAt: string
   sport?: Sport
-  owner?: Pick<User, 'name' | 'handle' | 'image'>
+  owner?: { name: string | null; id?: string; email?: string | null }
   _count?: { favorites: number }
 }
 
 export type Sport = { id: string; slug: string; name: string; category: string }
-export type User = { id: string; name: string | null; email: string | null; handle: string | null; prefecture: string | null; image: string | null; bio: string | null; trustScore: number }
+export type User = { id: string; name: string | null; email: string | null; role: string }
 
 export async function getPosts(opts: {
   status?: string
@@ -46,7 +46,7 @@ export async function getPosts(opts: {
   let query = db.from('Post').select(`
     *,
     sport:Sport(*),
-    owner:User!Post_ownerId_fkey(name, handle, image)
+    owner:User!Post_ownerId_fkey(id, name)
   `)
 
   if (opts.status) query = query.eq('status', opts.status)
@@ -92,7 +92,7 @@ export async function getPost(slug: string) {
     .select(`
       *,
       sport:Sport(*),
-      owner:User!Post_ownerId_fkey(id, name, image, handle, bio, trustScore),
+      owner:User!Post_ownerId_fkey(id, name),
       images:PostImage(id, url, sortOrder),
       threadsCount:Thread(id)
     `)
@@ -104,7 +104,7 @@ export async function getPost(slug: string) {
 export async function getMyPosts(ownerId: string) {
   const { data } = await db
     .from('Post')
-    .select('*, sport:Sport(*), owner:User!Post_ownerId_fkey(name, image, handle)')
+    .select('*, sport:Sport(*), owner:User!Post_ownerId_fkey(id, name)')
     .eq('ownerId', ownerId)
     .neq('status', 'deleted')
     .order('createdAt', { ascending: false })
@@ -114,7 +114,7 @@ export async function getMyPosts(ownerId: string) {
 export async function getFavoritePosts(userId: string) {
   const { data } = await db
     .from('Favorite')
-    .select('createdAt, post:Post(*, sport:Sport(*), owner:User!Post_ownerId_fkey(name, image, handle))')
+    .select('createdAt, post:Post(*, sport:Sport(*), owner:User!Post_ownerId_fkey(id, name))')
     .eq('userId', userId)
     .order('createdAt', { ascending: false })
     .limit(10)

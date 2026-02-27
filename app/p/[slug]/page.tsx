@@ -207,20 +207,14 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
 
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             <h2 className="font-bold mb-3">主催者</h2>
-            <Link href={`/u/${post.owner?.handle || post.owner?.id}`} className="flex items-center gap-3 hover:opacity-80 transition">
-              {post.owner?.image ? (
-                <img src={post.owner.image} alt={post.owner.name || ''} className="w-10 h-10 rounded-full object-cover" />
-              ) : (
+            <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">
                   {(post.owner?.name || 'U')[0]}
                 </div>
-              )}
-              <div>
-                <div className="font-medium text-sm">{post.owner?.name || '名無し'}</div>
-                <div className="text-xs text-gray-400">信頼スコア: {post.owner?.trustScore || 0}</div>
+                <div>
+                  <div className="font-medium text-sm">{post.owner?.name || '名無し'}</div>
+                </div>
               </div>
-            </Link>
-            {post.owner?.bio && <p className="text-sm text-gray-500 mt-3">{post.owner.bio}</p>}
           </div>
         </div>
       </div>
