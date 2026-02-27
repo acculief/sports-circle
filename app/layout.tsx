@@ -3,9 +3,12 @@ import { Inter, Noto_Sans_JP } from 'next/font/google'
 import './globals.css'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
+import Script from "next/script"
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const noto = Noto_Sans_JP({ subsets: ['latin'], variable: '--font-noto', weight: ['400', '500', '700', '900'] })
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID
 
 export const metadata: Metadata = {
   title: { default: 'SportsCircle+ | 社会人スポーツサークル募集', template: '%s | SportsCircle+' },
@@ -33,6 +36,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="ja">
       <body className={`${inter.variable} ${noto.variable} font-sans bg-gray-50 text-gray-900 min-h-screen`}>
+        {GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_ID}');
+              `}
+            </Script>
+          </>
+        )}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex items-center h-14 gap-4 sm:gap-6">
