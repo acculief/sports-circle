@@ -30,7 +30,7 @@ export default async function AdminPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-black mb-6">🛡️ 管理パネル</h1>
+      <h1 className="text-2xl font-black mb-6">管理パネル</h1>
       <div className="bg-white rounded-2xl border p-6">
         <h2 className="font-bold text-lg mb-4">未処理通報 ({reports.length}件)</h2>
         {reports.length === 0 ? <p className="text-gray-400">未処理の通報はありません</p> : (

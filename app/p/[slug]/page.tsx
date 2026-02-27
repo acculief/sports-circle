@@ -36,7 +36,6 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
 
   if (!post || post.status === 'deleted') notFound()
 
-  // Increment view count (fire-and-forget)
   prisma.post.update({ where: { id: post.id }, data: { viewCount: { increment: 1 } } }).catch(() => {})
 
   const pref = PREFECTURES.find((p) => p.slug === post.prefecture)
@@ -66,7 +65,6 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
     <div className="max-w-4xl mx-auto">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-6">
         <Link href="/" className="hover:text-blue-600">トップ</Link>
         {' › '}
@@ -76,22 +74,20 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main */}
         <div className="lg:col-span-2">
-          {/* Status banner */}
           {post.status === 'paused' && (
             <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-4 mb-4 text-sm">
-              ⚠️ この募集は現在一時停止中です
+              この募集は現在一時停止中です
             </div>
           )}
 
           <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
             <div className="flex flex-wrap gap-2 mb-4">
-              <span className="bg-blue-100 text-blue-700 font-medium px-3 py-1 rounded-full text-sm">
+              <span className="bg-blue-50 text-blue-700 font-medium px-3 py-1 rounded text-sm">
                 {post.sport.name}
               </span>
               {labels.map((label) => (
-                <span key={label} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
+                <span key={label} className="bg-gray-100 text-gray-600 px-3 py-1 rounded text-sm">
                   {label}
                 </span>
               ))}
@@ -100,30 +96,29 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
             <h1 className="text-2xl font-black mb-4">{post.title}</h1>
             <p className="text-gray-700 leading-relaxed whitespace-pre-wrap mb-6">{post.description}</p>
 
-            {/* Details grid */}
             <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-4">
               {pref && (
                 <div>
                   <div className="text-xs text-gray-400 mb-0.5">エリア</div>
-                  <div className="text-sm font-medium">📍 {pref.name} {post.city && `・${post.city}`}</div>
+                  <div className="text-sm font-medium">{pref.name} {post.city && `・${post.city}`}</div>
                 </div>
               )}
               {post.placeText && (
                 <div>
                   <div className="text-xs text-gray-400 mb-0.5">活動場所</div>
-                  <div className="text-sm font-medium">🏟️ {post.placeText}</div>
+                  <div className="text-sm font-medium">{post.placeText}</div>
                 </div>
               )}
               {days && (
                 <div>
                   <div className="text-xs text-gray-400 mb-0.5">活動曜日</div>
-                  <div className="text-sm font-medium">📅 {days}</div>
+                  <div className="text-sm font-medium">{days}</div>
                 </div>
               )}
               {timeBandLabel && (
                 <div>
                   <div className="text-xs text-gray-400 mb-0.5">時間帯</div>
-                  <div className="text-sm font-medium">🕐 {timeBandLabel}</div>
+                  <div className="text-sm font-medium">{timeBandLabel}</div>
                 </div>
               )}
               {post.scheduleText && (
@@ -136,7 +131,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
                 <div>
                   <div className="text-xs text-gray-400 mb-0.5">参加費</div>
                   <div className="text-sm font-medium text-blue-700">
-                    💰 {post.feeMin != null ? `¥${post.feeMin.toLocaleString()}` : ''}
+                    {post.feeMin != null ? `¥${post.feeMin.toLocaleString()}` : ''}
                     {post.feeMax != null ? `〜¥${post.feeMax.toLocaleString()}` : '〜'}
                   </div>
                 </div>
@@ -144,7 +139,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
               {post.capacityText && (
                 <div>
                   <div className="text-xs text-gray-400 mb-0.5">募集人数</div>
-                  <div className="text-sm font-medium">👥 {post.capacityText}</div>
+                  <div className="text-sm font-medium">{post.capacityText}</div>
                 </div>
               )}
               {post.requirementsText && (
@@ -156,10 +151,9 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
             </div>
           </div>
 
-          {/* Google Maps link */}
           {(post.placeText || pref) && (
             <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
-              <h2 className="font-bold mb-2">📍 アクセス</h2>
+              <h2 className="font-bold mb-2">アクセス</h2>
               <a
                 href={`https://www.google.com/maps/search/${encodeURIComponent((post.placeText || '') + ' ' + (pref?.name || ''))}`}
                 target="_blank"
@@ -171,7 +165,6 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
             </div>
           )}
 
-          {/* Report link */}
           <div className="text-center mt-4">
             <Link href={`/report?targetType=post&targetId=${post.id}`} className="text-xs text-gray-400 hover:text-red-400 transition">
               この投稿を通報する
@@ -179,12 +172,14 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
           </div>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-4">
-          {/* CTA */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
-            <div className="text-sm text-gray-500 mb-4">
-              👁️ {post.viewCount}回閲覧 · ❤️ {post._count.favorites} お気に入り · 💬 {post._count.threads}件の問い合わせ
+            <div className="text-sm text-gray-500 mb-4 space-y-1">
+              <span>{post.viewCount}回閲覧</span>
+              {' · '}
+              <span>{post._count.favorites} お気に入り</span>
+              {' · '}
+              <span>{post._count.threads}件の問い合わせ</span>
             </div>
             {session?.user && session.user.id !== post.ownerId && post.status === 'active' ? (
               <ApplyButton postId={post.id} ownerId={post.ownerId} />
@@ -209,19 +204,18 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
             )}
           </div>
 
-          {/* Owner */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             <h2 className="font-bold mb-3">主催者</h2>
             <Link href={`/u/${post.owner.handle || post.owner.id}`} className="flex items-center gap-3 hover:opacity-80 transition">
               {post.owner.image ? (
                 <img src={post.owner.image} alt={post.owner.name || ''} className="w-10 h-10 rounded-full object-cover" />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">
                   {(post.owner.name || 'U')[0]}
                 </div>
               )}
               <div>
-                <div className="font-medium">{post.owner.name || '名無し'}</div>
+                <div className="font-medium text-sm">{post.owner.name || '名無し'}</div>
                 <div className="text-xs text-gray-400">信頼スコア: {post.owner.trustScore}</div>
               </div>
             </Link>

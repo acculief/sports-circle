@@ -24,10 +24,10 @@ export default async function MessagesPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-black mb-6">💬 メッセージ</h1>
+      <h1 className="text-2xl font-black mb-6">メッセージ</h1>
       {threads.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">💬</p>
+          <p className="text-4xl mb-3"></p>
           <p>メッセージはまだありません</p>
         </div>
       ) : (

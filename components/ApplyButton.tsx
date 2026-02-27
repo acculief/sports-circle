@@ -29,7 +29,7 @@ export default function ApplyButton({ postId, ownerId }: { postId: string; owner
       disabled={loading}
       className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 px-6 rounded-xl transition"
     >
-      {loading ? '処理中...' : '💬 応募/質問する'}
+      {loading ? '処理中...' : '応募/質問する'}
     </button>
   )
 }
