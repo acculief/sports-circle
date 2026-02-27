@@ -1,65 +1,131 @@
-import Image from "next/image";
+import Link from 'next/link'
+import { prisma } from '@/lib/prisma'
+import { PREFECTURES, SPORTS_CATEGORIES } from '@/lib/constants'
+import PostCard from '@/components/PostCard'
 
-export default function Home() {
+export const revalidate = 1800
+
+async function getRecentPosts() {
+  try {
+    return await prisma.post.findMany({
+      where: { status: 'active' },
+      take: 6,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        sport: true,
+        owner: { select: { name: true, image: true, handle: true } },
+        _count: { select: { favorites: true } },
+      },
+    })
+  } catch { return [] }
+}
+
+async function getPopularPosts() {
+  try {
+    return await prisma.post.findMany({
+      where: { status: 'active' },
+      take: 6,
+      orderBy: { viewCount: 'desc' },
+      include: {
+        sport: true,
+        owner: { select: { name: true, image: true, handle: true } },
+        _count: { select: { favorites: true } },
+      },
+    })
+  } catch { return [] }
+}
+
+export default async function HomePage() {
+  const [recentPosts, popularPosts] = await Promise.all([getRecentPosts(), getPopularPosts()])
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div>
+      {/* Hero */}
+      <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-10 mb-12 text-center text-white">
+        <h1 className="text-4xl md:text-5xl font-black mb-4">
+          スポーツ仲間を、もっと簡単に
+        </h1>
+        <p className="text-blue-100 text-xl mb-8">
+          全国のスポーツサークル・イベント募集が見つかる
+        </p>
+        <div className="flex gap-4 justify-center flex-wrap">
+          <Link href="/search" className="bg-white text-blue-700 font-bold py-3 px-8 rounded-xl text-lg hover:bg-blue-50 transition">
+            🔍 募集を探す
+          </Link>
+          <Link href="/new" className="bg-blue-500 hover:bg-blue-400 text-white font-bold py-3 px-8 rounded-xl text-lg transition border border-blue-400">
+            ＋ 募集を作る
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      {/* Prefecture Grid */}
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold mb-6">都道府県から探す</h2>
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
+          {PREFECTURES.map((pref) => (
+            <Link
+              key={pref.slug}
+              href={`/search?prefecture=${pref.slug}`}
+              className="bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 rounded-lg p-2 text-center text-xs font-medium transition"
+            >
+              {pref.name.replace('都', '').replace('道', '').replace('府', '').replace('県', '')}
+            </Link>
+          ))}
         </div>
-      </main>
+      </section>
+
+      {/* Sports Categories */}
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold mb-6">スポーツから探す</h2>
+        <div className="space-y-4">
+          {SPORTS_CATEGORIES.map((cat) => (
+            <div key={cat.category}>
+              <div className="text-sm font-medium text-gray-500 mb-2">{cat.category}</div>
+              <div className="flex flex-wrap gap-2">
+                {cat.sports.map((sport) => (
+                  <Link
+                    key={sport}
+                    href={`/search?q=${encodeURIComponent(sport)}`}
+                    className="bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 rounded-full px-4 py-1.5 text-sm font-medium transition"
+                  >
+                    {sport}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Recent Posts */}
+      {recentPosts.length > 0 && (
+        <section className="mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">新着募集</h2>
+            <Link href="/search?sort=new" className="text-blue-600 text-sm hover:underline">もっと見る →</Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentPosts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Popular Posts */}
+      {popularPosts.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">人気の募集</h2>
+            <Link href="/search?sort=popular" className="text-blue-600 text-sm hover:underline">もっと見る →</Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {popularPosts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
-  );
+  )
 }

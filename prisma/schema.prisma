@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  handle        String?   @unique
+  bio           String?
+  prefecture    String?
+  city          String?
+  role          String    @default("user")
+  trustScore    Int       @default(50)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  posts          Post[]
+  favorites      Favorite[]
+  viewHistory    ViewHistory[]
+  sentMessages   Message[]  @relation("SentMessages")
+  ownedThreads   Thread[]   @relation("OwnedThreads")
+  appliedThreads Thread[]   @relation("AppliedThreads")
+  reports        Report[]   @relation("ReporterReports")
+}
+
+model Sport {
+  id       String  @id @default(cuid())
+  slug     String  @unique
+  name     String
+  category String  @default("球技")
+  posts    Post[]
+}
+
+model Post {
+  id               String    @id @default(cuid())
+  slug             String    @unique
+  title            String
+  description      String    @db.Text
+  sportId          String
+  sport            Sport     @relation(fields: [sportId], references: [id])
+  prefecture       String
+  city             String?
+  placeText        String?
+  placeLat         Float?
+  placeLng         Float?
+  skillLevel       String    @default("any")
+  vibe             String    @default("standard")
+  genderMix        String    @default("any")
+  ageBand          String    @default("any")
+  feeMin           Int?
+  feeMax           Int?
+  scheduleText     String?
+  daysOfWeek       Int[]
+  timeBand         String    @default("any")
+  capacityText     String?
+  requirementsText String?
+  contactPolicy    String    @default("messageOnly")
+  status           String    @default("active")
+  ownerId          String
+  owner            User      @relation(fields: [ownerId], references: [id])
+  viewCount        Int       @default(0)
+  favoriteCount    Int       @default(0)
+  qualityScore     Int       @default(50)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lastBumpedAt     DateTime  @default(now())
+
+  images      PostImage[]
+  favorites   Favorite[]
+  viewHistory ViewHistory[]
+  threads     Thread[]
+
+  @@index([prefecture, sportId, status, updatedAt])
+}
+
+model PostImage {
+  id        String  @id @default(cuid())
+  postId    String
+  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  url       String
+  sortOrder Int     @default(0)
+}
+
+model Favorite {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  @@id([userId, postId])
+  @@index([postId])
+}
+
+model ViewHistory {
+  id       String   @id @default(cuid())
+  userId   String?
+  anonId   String?
+  postId   String
+  viewedAt DateTime @default(now())
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  @@index([postId, viewedAt])
+}
+
+model Thread {
+  id            String    @id @default(cuid())
+  postId        String
+  post          Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  ownerId       String
+  owner         User      @relation("OwnedThreads", fields: [ownerId], references: [id])
+  applicantId   String
+  applicant     User      @relation("AppliedThreads", fields: [applicantId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastMessageAt DateTime  @default(now())
+  messages      Message[]
+  @@unique([postId, applicantId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  threadId  String
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id])
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String?
+  reporter   User?    @relation("ReporterReports", fields: [reporterId], references: [id], onDelete: SetNull)
+  targetType String
+  targetId   String
+  reason     String
+  detail     String?  @db.Text
+  status     String   @default("open")
+  adminNote  String?
+  createdAt  DateTime @default(now())
+}
