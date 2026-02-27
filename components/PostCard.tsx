@@ -16,36 +16,36 @@ export default function PostCard({ post }: { post: PostWithRelations }) {
   return (
     <Link
       href={`/p/${post.slug}`}
-      className="block bg-white border border-gray-200 hover:border-blue-400 rounded-xl p-5 transition hover:shadow-sm"
+      className="flex flex-col bg-white border border-gray-200 hover:border-blue-400 rounded-xl p-4 transition hover:shadow-sm"
     >
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="flex flex-wrap gap-1">
-          <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex flex-wrap gap-1 flex-1 min-w-0">
+          <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
             {post.sport.name}
           </span>
           {skillLabel && (
-            <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
+            <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">
               {skillLabel}
             </span>
           )}
           {vibeLabel && (
-            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">
               {vibeLabel}
             </span>
           )}
         </div>
-        <span className="text-xs text-gray-400 whitespace-nowrap">
+        <span className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
           ❤️ {post._count.favorites}
         </span>
       </div>
-      <h3 className="font-bold text-gray-900 mb-2 line-clamp-2">{post.title}</h3>
-      <p className="text-gray-500 text-sm line-clamp-2 mb-3">{post.description}</p>
-      <div className="flex items-center justify-between text-xs text-gray-400">
-        <span>📍 {pref?.name} {post.city && `・${post.city}`}</span>
-        <span>{new Date(post.createdAt).toLocaleDateString('ja-JP')}</span>
+      <h3 className="font-bold text-gray-900 mb-1.5 line-clamp-2 text-sm sm:text-base leading-snug">{post.title}</h3>
+      <p className="text-gray-500 text-xs sm:text-sm line-clamp-2 mb-3 flex-1">{post.description}</p>
+      <div className="flex items-center justify-between text-xs text-gray-400 mt-auto">
+        <span className="truncate mr-2">📍 {pref?.name}{post.city && `・${post.city}`}</span>
+        <span className="whitespace-nowrap">{new Date(post.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}</span>
       </div>
       {(post.feeMin != null || post.feeMax != null) && (
-        <div className="mt-2 text-sm font-medium text-gray-700">
+        <div className="mt-2 text-xs sm:text-sm font-medium text-gray-700">
           💰 {post.feeMin != null ? `¥${post.feeMin.toLocaleString()}` : ''}
           {post.feeMax != null ? `〜¥${post.feeMax.toLocaleString()}` : '〜'}
         </div>
