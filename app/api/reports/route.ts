@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { auth } from '@/lib/auth'
 
 export async function POST(request: Request) {
@@ -8,8 +8,12 @@ export async function POST(request: Request) {
   if (!targetType || !targetId || !reason) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
-  await prisma.report.create({
-    data: { targetType, targetId, reason, detail, reporterId: session?.user?.id ?? null },
+  await db.from('Report').insert({
+    targetType,
+    targetId,
+    reason,
+    detail,
+    reporterId: session?.user?.id ?? null,
   })
   return NextResponse.json({ success: true })
 }

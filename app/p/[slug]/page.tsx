@@ -1,4 +1,5 @@
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
+import { getPost } from '@/lib/queries'
 import { notFound } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { PREFECTURES, SKILL_LEVELS, VIBES, GENDER_MIX, AGE_BANDS, TIME_BANDS, DAYS_OF_WEEK } from '@/lib/constants'
@@ -11,7 +12,7 @@ export const revalidate = 300
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
-  const post = await prisma.post.findUnique({ where: { slug }, include: { sport: true } })
+  const post = await getPost(slug)
   if (!post) return {}
   return {
     title: `${post.title} | SportsCircle+`,
@@ -24,24 +25,22 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
   const { slug } = await params
   const session = await auth()
 
-  const post = await prisma.post.findUnique({
-    where: { slug },
-    include: {
-      sport: true,
-      owner: { select: { id: true, name: true, image: true, handle: true, bio: true, trustScore: true } },
-      images: { orderBy: { sortOrder: 'asc' } },
-      _count: { select: { favorites: true, threads: true } },
-    },
-  })
-
+  const post = await getPost(slug)
   if (!post || post.status === 'deleted') notFound()
 
-  prisma.post.update({ where: { id: post.id }, data: { viewCount: { increment: 1 } } }).catch(() => {})
+  // Increment viewCount (fire-and-forget)
+  void (async () => {
+    try {
+      await db.from('Post').update({ viewCount: (post.viewCount || 0) + 1 }).eq('id', post.id)
+    } catch {}
+  })()
 
   const pref = PREFECTURES.find((p) => p.slug === post.prefecture)
-  const isFavorited = session?.user?.id
-    ? !!(await prisma.favorite.findUnique({ where: { userId_postId: { userId: session.user.id, postId: post.id } } }))
-    : false
+  let isFavorited = false
+  if (session?.user?.id) {
+    const { data: fav } = await db.from('Favorite').select('userId').eq('userId', session.user.id).eq('postId', post.id).maybeSingle()
+    isFavorited = !!fav
+  }
 
   const labels = [
     SKILL_LEVELS.find((s) => s.value === post.skillLevel)?.label,
@@ -50,8 +49,10 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
     AGE_BANDS.find((a) => a.value === post.ageBand)?.label,
   ].filter(Boolean)
 
-  const days = post.daysOfWeek.map((d) => DAYS_OF_WEEK[d]).join('・')
+  const days = (post.daysOfWeek || []).map((d: any) => DAYS_OF_WEEK[d]).join('・')
   const timeBandLabel = TIME_BANDS.find((t) => t.value === post.timeBand)?.label
+
+  const threadsCount = (post.threadsCount || []).length
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -84,9 +85,9 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
           <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
             <div className="flex flex-wrap gap-2 mb-4">
               <span className="bg-blue-50 text-blue-700 font-medium px-3 py-1 rounded text-sm">
-                {post.sport.name}
+                {post.sport?.name}
               </span>
-              {labels.map((label) => (
+              {labels.map((label: any) => (
                 <span key={label} className="bg-gray-100 text-gray-600 px-3 py-1 rounded text-sm">
                   {label}
                 </span>
@@ -177,9 +178,9 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
             <div className="text-sm text-gray-500 mb-4 space-y-1">
               <span>{post.viewCount}回閲覧</span>
               {' · '}
-              <span>{post._count.favorites} お気に入り</span>
+              <span>{post.favoriteCount || 0} お気に入り</span>
               {' · '}
-              <span>{post._count.threads}件の問い合わせ</span>
+              <span>{threadsCount}件の問い合わせ</span>
             </div>
             {session?.user && session.user.id !== post.ownerId && post.status === 'active' ? (
               <ApplyButton postId={post.id} ownerId={post.ownerId} />
@@ -206,20 +207,20 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
 
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             <h2 className="font-bold mb-3">主催者</h2>
-            <Link href={`/u/${post.owner.handle || post.owner.id}`} className="flex items-center gap-3 hover:opacity-80 transition">
-              {post.owner.image ? (
+            <Link href={`/u/${post.owner?.handle || post.owner?.id}`} className="flex items-center gap-3 hover:opacity-80 transition">
+              {post.owner?.image ? (
                 <img src={post.owner.image} alt={post.owner.name || ''} className="w-10 h-10 rounded-full object-cover" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">
-                  {(post.owner.name || 'U')[0]}
+                  {(post.owner?.name || 'U')[0]}
                 </div>
               )}
               <div>
-                <div className="font-medium text-sm">{post.owner.name || '名無し'}</div>
-                <div className="text-xs text-gray-400">信頼スコア: {post.owner.trustScore}</div>
+                <div className="font-medium text-sm">{post.owner?.name || '名無し'}</div>
+                <div className="text-xs text-gray-400">信頼スコア: {post.owner?.trustScore || 0}</div>
               </div>
             </Link>
-            {post.owner.bio && <p className="text-sm text-gray-500 mt-3">{post.owner.bio}</p>}
+            {post.owner?.bio && <p className="text-sm text-gray-500 mt-3">{post.owner.bio}</p>}
           </div>
         </div>
       </div>

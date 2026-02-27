@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { getPosts, countPosts, getSports } from '@/lib/queries'
 import { PREFECTURES, SKILL_LEVELS, VIBES } from '@/lib/constants'
 import PostCard from '@/components/PostCard'
 import Link from 'next/link'
@@ -18,38 +18,37 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const page = parseInt(params.page || '1')
   const skip = (page - 1) * PAGE_SIZE
 
-  const where: Record<string, unknown> = { status: 'active' }
-  if (params.prefecture) where.prefecture = params.prefecture
-  if (params.sport) where.sportId = params.sport
-  if (params.skillLevel) where.skillLevel = params.skillLevel
-  if (params.vibe) where.vibe = params.vibe
-  if (params.timeBand) where.timeBand = params.timeBand
-  if (params.q) {
-    where.OR = [
-      { title: { contains: params.q, mode: 'insensitive' } },
-      { description: { contains: params.q, mode: 'insensitive' } },
-    ]
-  }
-
-  let orderBy: Record<string, unknown> = { createdAt: 'desc' }
-  if (params.sort === 'popular') orderBy = { viewCount: 'desc' }
-  if (params.sort === 'favorites') orderBy = { favoriteCount: 'desc' }
+  const orderBy = params.sort === 'popular' ? 'viewCount' as const
+    : params.sort === 'favorites' ? 'favoriteCount' as const
+    : 'createdAt' as const
 
   let posts: any[] = []
   let total = 0
-  const sports = await prisma.sport.findMany({ orderBy: { name: 'asc' } }).catch(() => [])
+  const sports = await getSports()
 
   try {
     ;[posts, total] = await Promise.all([
-      prisma.post.findMany({
-        where, orderBy, skip, take: PAGE_SIZE,
-        include: {
-          sport: true,
-          owner: { select: { name: true, image: true, handle: true } },
-          _count: { select: { favorites: true } },
-        },
+      getPosts({
+        status: 'active',
+        prefecture: params.prefecture || undefined,
+        sportId: params.sport || undefined,
+        skillLevel: params.skillLevel || undefined,
+        vibe: params.vibe || undefined,
+        timeBand: params.timeBand || undefined,
+        q: params.q || undefined,
+        limit: PAGE_SIZE,
+        offset: skip,
+        orderBy,
       }),
-      prisma.post.count({ where }),
+      countPosts({
+        status: 'active',
+        prefecture: params.prefecture || undefined,
+        sportId: params.sport || undefined,
+        skillLevel: params.skillLevel || undefined,
+        vibe: params.vibe || undefined,
+        timeBand: params.timeBand || undefined,
+        q: params.q || undefined,
+      }),
     ])
   } catch {}
 

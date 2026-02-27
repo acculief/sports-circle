@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { prisma } from '@/lib/prisma'
+import { getPosts } from '@/lib/queries'
 
 export const revalidate = 1800
 
@@ -12,16 +12,7 @@ const PREFS = ['東京都', '神奈川県', '大阪府', '愛知県', '福岡県
 
 async function getRecentPosts() {
   try {
-    return await prisma.post.findMany({
-      where: { status: 'active' },
-      take: 9,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        sport: true,
-        owner: { select: { name: true, handle: true } },
-        _count: { select: { favorites: true } },
-      },
-    })
+    return await getPosts({ status: 'active', limit: 9, orderBy: 'createdAt' })
   } catch { return [] }
 }
 

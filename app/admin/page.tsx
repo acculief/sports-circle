@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 
 export const revalidate = 0
@@ -9,11 +9,12 @@ export default async function AdminPage() {
   const session = await auth()
   if (!session?.user || (session.user as { role?: string }).role !== 'admin') redirect('/')
 
-  const reports = await prisma.report.findMany({
-    where: { status: 'open' },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-  })
+  const { data: reports } = await db
+    .from('Report')
+    .select('*')
+    .eq('status', 'open')
+    .order('createdAt', { ascending: false })
+    .limit(50)
 
   async function resolveReport(formData: FormData) {
     'use server'
@@ -22,9 +23,9 @@ export default async function AdminPage() {
     const postId = formData.get('postId') as string
 
     if (action === 'pause' && postId) {
-      await prisma.post.update({ where: { id: postId }, data: { status: 'paused' } })
+      await db.from('Post').update({ status: 'paused' }).eq('id', postId)
     }
-    await prisma.report.update({ where: { id: reportId }, data: { status: 'reviewed' } })
+    await db.from('Report').update({ status: 'reviewed' }).eq('id', reportId)
     revalidatePath('/admin')
   }
 
@@ -32,10 +33,10 @@ export default async function AdminPage() {
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl font-black mb-6">管理パネル</h1>
       <div className="bg-white rounded-2xl border p-6">
-        <h2 className="font-bold text-lg mb-4">未処理通報 ({reports.length}件)</h2>
-        {reports.length === 0 ? <p className="text-gray-400">未処理の通報はありません</p> : (
+        <h2 className="font-bold text-lg mb-4">未処理通報 ({reports?.length || 0}件)</h2>
+        {!reports?.length ? <p className="text-gray-400">未処理の通報はありません</p> : (
           <div className="space-y-3">
-            {reports.map((report) => (
+            {reports.map((report: any) => (
               <div key={report.id} className="border border-gray-200 rounded-xl p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>

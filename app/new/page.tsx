@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
+import { getSports } from '@/lib/queries'
 import { PREFECTURES, SKILL_LEVELS, VIBES, GENDER_MIX, TIME_BANDS, DAYS_OF_WEEK } from '@/lib/constants'
 import { postSchema } from '@/lib/validations'
 import { generateSlug } from '@/lib/utils'
@@ -10,7 +11,7 @@ export default async function NewPostPage() {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const sports = await prisma.sport.findMany({ orderBy: { name: 'asc' } }).catch(() => [])
+  const sports = await getSports().catch(() => [])
 
   async function createPost(formData: FormData) {
     'use server'
@@ -40,13 +41,18 @@ export default async function NewPostPage() {
     const parsed = postSchema.safeParse(raw)
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || 'Validation error')
 
-    const post = await prisma.post.create({
-      data: {
+    const slug = generateSlug()
+    const { data: post, error } = await db
+      .from('Post')
+      .insert({
         ...parsed.data,
-        slug: generateSlug(),
-        ownerId: session.user.id,
-      },
-    })
+        slug,
+        ownerId: session.user!.id,
+      })
+      .select('slug')
+      .single()
+
+    if (error || !post) throw new Error('投稿に失敗しました')
 
     revalidatePath('/')
     redirect(`/p/${post.slug}`)

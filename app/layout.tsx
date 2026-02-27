@@ -9,7 +9,22 @@ const noto = Noto_Sans_JP({ subsets: ['latin'], variable: '--font-noto', weight:
 
 export const metadata: Metadata = {
   title: { default: 'SportsCircle+ | 社会人スポーツサークル募集', template: '%s | SportsCircle+' },
-  description: '社会人のスポーツサークル・仲間募集。全国47都道府県対応。サッカー・テニス・バスケ・ランニングなど。',
+  description: '社会人のスポーツサークル・仲間募集。全国47都道府県対応。サッカー・テニス・バスケ・ランニングなど50以上のスポーツ。',
+  metadataBase: new URL('https://sports-circle.vercel.app'),
+  openGraph: {
+    type: 'website',
+    locale: 'ja_JP',
+    url: 'https://sports-circle.vercel.app',
+    siteName: 'SportsCircle+',
+    title: 'SportsCircle+ | 社会人スポーツサークル募集',
+    description: '社会人のスポーツサークル・仲間募集。全国対応。サッカー・テニス・バスケ・ランニングなど。',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'SportsCircle+' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SportsCircle+ | 社会人スポーツサークル募集',
+    description: '社会人のスポーツサークル・仲間募集。全国対応。',
+  },
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

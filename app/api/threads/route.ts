@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 
 export async function POST(request: Request) {
   const session = await auth()
@@ -14,19 +14,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '自分の投稿には応募できません' }, { status: 400 })
   }
 
-  const post = await prisma.post.findUnique({ where: { id: postId } })
+  const { data: post } = await db.from('Post').select('id, ownerId').eq('id', postId).single()
   if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 })
 
-  // Upsert thread
-  const thread = await prisma.thread.upsert({
-    where: { postId_applicantId: { postId, applicantId: session.user.id } },
-    update: {},
-    create: {
+  // Check for existing thread
+  const { data: existing } = await db
+    .from('Thread')
+    .select('id')
+    .eq('postId', postId)
+    .eq('applicantId', session.user.id)
+    .maybeSingle()
+
+  if (existing) {
+    return NextResponse.json({ threadId: existing.id })
+  }
+
+  // Create new thread
+  const { data: thread, error } = await db
+    .from('Thread')
+    .insert({
       postId,
       ownerId: post.ownerId,
       applicantId: session.user.id,
-    },
-  })
+    })
+    .select('id')
+    .single()
+
+  if (error || !thread) return NextResponse.json({ error: 'Failed to create thread' }, { status: 500 })
 
   return NextResponse.json({ threadId: thread.id })
 }

@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
+import { getMyPosts, getFavoritePosts } from '@/lib/queries'
 import Link from 'next/link'
 import PostCard from '@/components/PostCard'
 
@@ -10,24 +11,13 @@ export default async function MyPage() {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const [myPosts, favoritePosts, user] = await Promise.all([
-    prisma.post.findMany({
-      where: { ownerId: session.user.id, status: { not: 'deleted' } },
-      orderBy: { createdAt: 'desc' },
-      include: { sport: true, owner: { select: { name: true, image: true, handle: true } }, _count: { select: { favorites: true } } },
-    }),
-    prisma.favorite.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-      include: {
-        post: {
-          include: { sport: true, owner: { select: { name: true, image: true, handle: true } }, _count: { select: { favorites: true } } },
-        },
-      },
-    }),
-    prisma.user.findUnique({ where: { id: session.user.id } }),
+  const [myPosts, favoritePosts, userResult] = await Promise.all([
+    getMyPosts(session.user.id).catch(() => []),
+    getFavoritePosts(session.user.id).catch(() => []),
+    db.from('User').select('*').eq('id', session.user.id).maybeSingle(),
   ])
+
+  const user = userResult.data
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -65,7 +55,6 @@ export default async function MyPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {myPosts.map((post) => <PostCard key={post.id} post={post as any} />)}
           </div>
         )}
@@ -80,10 +69,7 @@ export default async function MyPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {favoritePosts.map(({ post }) => (
-              /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-              <PostCard key={post.id} post={post as any} />
-            ))}
+            {favoritePosts.map((post) => post && <PostCard key={post.id} post={post as any} />)}
           </div>
         )}
       </section>

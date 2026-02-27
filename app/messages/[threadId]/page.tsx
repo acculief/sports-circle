@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
 
@@ -11,18 +11,17 @@ export default async function ThreadPage({ params }: { params: Promise<{ threadI
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const thread = await prisma.thread.findUnique({
-    where: { id: threadId },
-    include: {
-      post: { select: { title: true, slug: true } },
-      owner: { select: { id: true, name: true } },
-      applicant: { select: { id: true, name: true } },
-      messages: {
-        orderBy: { createdAt: 'asc' },
-        include: { sender: { select: { name: true, id: true } } },
-      },
-    },
-  })
+  const { data: thread } = await db
+    .from('Thread')
+    .select(`
+      *,
+      post:Post(title, slug),
+      owner:User!Thread_ownerId_fkey(id, name),
+      applicant:User!Thread_applicantId_fkey(id, name),
+      messages:Message(*, sender:User!Message_senderId_fkey(name, id))
+    `)
+    .eq('id', threadId)
+    .single()
 
   if (!thread) notFound()
   if (thread.ownerId !== session.user.id && thread.applicantId !== session.user.id) {
@@ -30,6 +29,9 @@ export default async function ThreadPage({ params }: { params: Promise<{ threadI
   }
 
   const other = thread.ownerId === session.user.id ? thread.applicant : thread.owner
+  const messages = (thread.messages || []).sort((a: any, b: any) =>
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  )
 
   async function sendMessage(formData: FormData) {
     'use server'
@@ -38,13 +40,15 @@ export default async function ThreadPage({ params }: { params: Promise<{ threadI
     const body = formData.get('body') as string
     if (!body?.trim()) return
 
-    await prisma.message.create({
-      data: { threadId, senderId: session.user.id, body: body.trim() },
+    await db.from('Message').insert({
+      threadId,
+      senderId: session.user!.id,
+      body: body.trim(),
     })
-    await prisma.thread.update({
-      where: { id: threadId },
-      data: { lastMessageAt: new Date(), updatedAt: new Date() },
-    })
+    await db.from('Thread').update({
+      lastMessageAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }).eq('id', threadId)
     revalidatePath(`/messages/${threadId}`)
   }
 
@@ -53,19 +57,19 @@ export default async function ThreadPage({ params }: { params: Promise<{ threadI
       <div className="flex items-center gap-3 mb-6">
         <Link href="/messages" className="text-gray-400 hover:text-gray-600">←</Link>
         <div>
-          <div className="font-bold">{other.name || '名無し'}</div>
-          <Link href={`/p/${thread.post.slug}`} className="text-sm text-blue-600 hover:underline">
-            {thread.post.title}
+          <div className="font-bold">{other?.name || '名無し'}</div>
+          <Link href={`/p/${thread.post?.slug}`} className="text-sm text-blue-600 hover:underline">
+            {thread.post?.title}
           </Link>
         </div>
       </div>
 
       {/* Messages */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4 space-y-4 min-h-64 max-h-96 overflow-y-auto">
-        {thread.messages.length === 0 ? (
+        {messages.length === 0 ? (
           <div className="text-center py-8 text-gray-400">最初のメッセージを送りましょう</div>
         ) : (
-          thread.messages.map((msg) => {
+          messages.map((msg: any) => {
             const isMe = msg.senderId === session.user!.id
             return (
               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
