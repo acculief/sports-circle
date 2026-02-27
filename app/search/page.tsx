@@ -11,7 +11,7 @@ interface SearchParams {
   sort?: string; page?: string
 }
 
-const PAGE_SIZE = 12
+const PAGE_SIZE = 15
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams
@@ -57,81 +57,70 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
   return (
     <div>
-      {/* Search bar */}
-      <form className="mb-4">
-        <div className="flex gap-2">
+      <h1 className="text-xl font-bold mb-5">
+        {params.q ? `"${params.q}" の検索結果` : 'スポーツサークル募集一覧'}
+      </h1>
+
+      <form className="bg-white border border-gray-200 rounded-xl p-4 mb-5">
+        <div className="flex gap-2 mb-3">
           <input
             name="q"
             defaultValue={params.q}
-            placeholder="スポーツ・キーワードで検索..."
-            className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            placeholder="スポーツ・キーワード..."
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-medium text-sm transition whitespace-nowrap">
+          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition shrink-0">
             検索
           </button>
         </div>
-
-        {/* Filter row - SP: horizontal scroll */}
-        <div className="flex gap-2 mt-2 overflow-x-auto pb-1">
+        <div className="flex gap-2 overflow-x-auto pb-0.5">
           <select name="prefecture" defaultValue={params.prefecture}
-            className="flex-shrink-0 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-white focus:outline-none">
+            className="shrink-0 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">都道府県</option>
             {PREFECTURES.map((p) => <option key={p.slug} value={p.slug}>{p.name}</option>)}
           </select>
           <select name="sport" defaultValue={params.sport}
-            className="flex-shrink-0 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-white focus:outline-none">
+            className="shrink-0 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">スポーツ</option>
             {sports.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
           <select name="skillLevel" defaultValue={params.skillLevel}
-            className="flex-shrink-0 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-white focus:outline-none">
+            className="shrink-0 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">レベル</option>
             {SKILL_LEVELS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <select name="vibe" defaultValue={params.vibe}
-            className="flex-shrink-0 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-white focus:outline-none">
+            className="shrink-0 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">雰囲気</option>
             {VIBES.map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
+          </select>
+          <select name="sort" defaultValue={params.sort}
+            className="shrink-0 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">新着順</option>
+            <option value="popular">人気順</option>
+            <option value="favorites">いいね順</option>
           </select>
         </div>
       </form>
 
-      {/* Sort + count */}
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs text-gray-500">{total}件</p>
-        <div className="flex gap-1">
-          {[['new', '新着'], ['popular', '人気']].map(([val, label]) => (
-            <Link key={val} href={`?${new URLSearchParams({ ...params, sort: val as string })}`}
-              className={`text-xs px-3 py-1.5 rounded-full border transition ${
-                (params.sort || 'new') === val
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-600 border-gray-200'
-              }`}>
-              {label}
-            </Link>
-          ))}
-        </div>
-      </div>
+      <p className="text-xs text-gray-500 mb-3">{total}件</p>
 
-      {/* Results grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {posts.map((post) => <PostCard key={post.id} post={post} />)}
       </div>
 
       {posts.length === 0 && (
-        <div className="text-center py-12 text-gray-400">
-          <p className="text-4xl mb-3">🔍</p>
-          <p className="text-sm">条件に合う募集が見つかりませんでした</p>
+        <div className="text-center py-12 bg-white border border-gray-200 rounded-xl text-gray-400 text-sm">
+          条件に合う募集が見つかりませんでした
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center gap-1 mt-6">
           {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map((p) => (
             <Link key={p} href={`?${new URLSearchParams({ ...params, page: String(p) })}`}
               className={`w-9 h-9 flex items-center justify-center rounded-lg border text-sm transition ${
-                p === page ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'
+                p === page ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
               }`}>
               {p}
             </Link>

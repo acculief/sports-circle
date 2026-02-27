@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { PREFECTURES, SKILL_LEVELS, VIBES } from '@/lib/constants'
+import { PREFECTURES } from '@/lib/constants'
 import type { Post, Sport, User } from '@prisma/client'
 
 type PostWithRelations = Post & {
@@ -8,48 +8,38 @@ type PostWithRelations = Post & {
   _count: { favorites: number }
 }
 
+const SKILL_LABELS: Record<string, string> = { beginner: '初心者可', intermediate: '中級', advanced: '上級', any: '誰でも' }
+const VIBE_LABELS: Record<string, string> = { casual: 'ゆるい', standard: '普通', serious: '本気' }
+
 export default function PostCard({ post }: { post: PostWithRelations }) {
   const pref = PREFECTURES.find((p) => p.slug === post.prefecture)
-  const skillLabel = SKILL_LEVELS.find((s) => s.value === post.skillLevel)?.label
-  const vibeLabel = VIBES.find((v) => v.value === post.vibe)?.label
 
   return (
     <Link
       href={`/p/${post.slug}`}
-      className="flex flex-col bg-white border border-gray-200 hover:border-blue-400 rounded-xl p-4 transition hover:shadow-sm"
+      className="flex flex-col bg-white border border-gray-200 hover:border-blue-400 hover:shadow-sm rounded-xl p-4 transition"
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex flex-wrap gap-1 flex-1 min-w-0">
-          <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
-            {post.sport.name}
-          </span>
-          {skillLabel && (
-            <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">
-              {skillLabel}
-            </span>
-          )}
-          {vibeLabel && (
-            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">
-              {vibeLabel}
-            </span>
-          )}
-        </div>
-        <span className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
-          ❤️ {post._count.favorites}
+      <div className="flex items-center gap-2 flex-wrap mb-2">
+        <span className="text-xs font-medium bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+          {post.sport?.name}
         </span>
+        {SKILL_LABELS[post.skillLevel] && (
+          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+            {SKILL_LABELS[post.skillLevel]}
+          </span>
+        )}
+        {VIBE_LABELS[post.vibe] && (
+          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+            {VIBE_LABELS[post.vibe]}
+          </span>
+        )}
       </div>
-      <h3 className="font-bold text-gray-900 mb-1.5 line-clamp-2 text-sm sm:text-base leading-snug">{post.title}</h3>
-      <p className="text-gray-500 text-xs sm:text-sm line-clamp-2 mb-3 flex-1">{post.description}</p>
-      <div className="flex items-center justify-between text-xs text-gray-400 mt-auto">
-        <span className="truncate mr-2">📍 {pref?.name}{post.city && `・${post.city}`}</span>
-        <span className="whitespace-nowrap">{new Date(post.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}</span>
+      <h3 className="font-bold text-sm leading-snug mb-1.5 line-clamp-2">{post.title}</h3>
+      <p className="text-xs text-gray-500 line-clamp-2 flex-1">{post.description}</p>
+      <div className="flex items-center justify-between text-xs text-gray-400 mt-3 pt-2.5 border-t border-gray-100">
+        <span className="truncate">{pref?.name || post.prefecture}{post.city && String.fromCharCode(12539) + post.city}</span>
+        <span>{new Date(post.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}</span>
       </div>
-      {(post.feeMin != null || post.feeMax != null) && (
-        <div className="mt-2 text-xs sm:text-sm font-medium text-gray-700">
-          💰 {post.feeMin != null ? `¥${post.feeMin.toLocaleString()}` : ''}
-          {post.feeMax != null ? `〜¥${post.feeMax.toLocaleString()}` : '〜'}
-        </div>
-      )}
     </Link>
   )
 }
