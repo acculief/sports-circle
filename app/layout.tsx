@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   title: { default: 'SportsCircle+ | 社会人スポーツサークル募集', template: '%s | SportsCircle+' },
   description: '社会人のスポーツサークル・仲間募集。全国47都道府県対応。サッカー・テニス・バスケ・ランニングなど50以上のスポーツ。',
   metadataBase: new URL('https://sports-circle.vercel.app'),
+  verification: { google: '0uJTSoLifNf9F30GBAdAstHG5n6Ci6kGC29csJZbdRM' },
   openGraph: {
     type: 'website',
     locale: 'ja_JP',
